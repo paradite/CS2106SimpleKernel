@@ -44,12 +44,11 @@ public class Kernel {
     public int currentPID = 0;
     Process initProcess;
     public Process currentProcess;
-    public ArrayList<LinkedList<Process>> RL;
+    public ArrayList<LinkedList<Process>> readyList;
     public Process tempProcess;
 
 //    Resources related
     private Resource[] resources;
-    private int MAX_RESOURCE_UNIT = 4;
 
     /**
      * Request resource with current process
@@ -73,6 +72,7 @@ public class Kernel {
             res.status = res.status - unit;
 //            Add resource into the list of resources being used by the process
             currentProcess.resources_using.add(res);
+//            Add process into the list of processes using the resource
             scheduler();
             return STATUS_RUNNING;
         }else if(unit > res.status){
@@ -90,7 +90,7 @@ public class Kernel {
     }
 
     /**
-     * Add a process into the RL
+     * Add a process into the readyList
      * @param p Process to be added
      * @return  int representing the priority of the process added if successfully added, or an error
      */
@@ -100,13 +100,13 @@ public class Kernel {
             return STATUS_ERROR;
         }else{
             int priority = p.priority;
-            RL.get(priority).add(p);
+            readyList.get(priority).add(p);
             return priority;
         }
     }
 
     /**
-     * Remove a process from the RL
+     * Remove a process from the readyList
      * @param p Process to be removed
      * @return  Signal of error or success
      */
@@ -116,7 +116,7 @@ public class Kernel {
             return STATUS_ERROR;
         }else{
             int priority = p.priority;
-            boolean success =  RL.get(priority).remove(p);
+            boolean success =  readyList.get(priority).remove(p);
             if(success){
                 return SIGNAL_SUCCESS;
             }else{
@@ -125,6 +125,11 @@ public class Kernel {
         }
     }
 
+    /**
+     * Remove a process from the waiting list of all resources
+     * @param p Process to be removed
+     * @return  Signal
+     */
     private int removefromWaitingLists(Process p){
         if(p == null || p.priority < 0 || p.priority > 2){
 //            Invalid process
@@ -149,12 +154,20 @@ public class Kernel {
         }
     }
 
+    /**
+     * Get a new PID in running number
+     * @return  integer
+     */
     private int getPID(){
         currentPID++;
         return currentPID;
     }
 
-
+    /**
+     * Get the corresponding resource from the resource tag string
+     * @param tag   String for resource tag, eg. "R1"
+     * @return      Resource
+     */
     private Resource getResourceFromTag(String tag){
         if(tag.length()< 2){
             return null;
@@ -165,6 +178,9 @@ public class Kernel {
         return resources[id];
     }
 
+    /**
+     * Timeout function
+     */
     private void timeOut(){
         removefromRL(currentProcess);
         tempProcess = currentProcess;
@@ -173,20 +189,24 @@ public class Kernel {
         scheduler();
     }
 
+    /**
+     * Scheduler function
+     * Called after each instruction is successfully executed
+     */
     private void scheduler() {
 //        Set the running process
-//        There should be at least one process in RL
-        assert ( !(RL.get(0).isEmpty() && RL.get(1).isEmpty() && RL.get(2).isEmpty()) );
+//        There should be at least one process in readyList
+        assert ( !(readyList.get(0).isEmpty() && readyList.get(1).isEmpty() && readyList.get(2).isEmpty()) );
 //        Choose the process with highest priority following FIFO
-        if(!RL.get(2).isEmpty()){
+        if(!readyList.get(2).isEmpty()){
 //            Exists a process with priority 2
-            currentProcess = RL.get(2).getFirst();
-        }else if(!RL.get(1).isEmpty()){
+            currentProcess = readyList.get(2).getFirst();
+        }else if(!readyList.get(1).isEmpty()){
 //            Exists a process with priority 1
-            currentProcess = RL.get(1).getFirst();
-        }else if(!RL.get(0).isEmpty()){
+            currentProcess = readyList.get(1).getFirst();
+        }else if(!readyList.get(0).isEmpty()){
 //            Exists a process with priority 0
-            currentProcess = RL.get(0).getFirst();
+            currentProcess = readyList.get(0).getFirst();
         }else{
 //            This should not happen
             print_state(TEXT_CRITICAL_ERROR);
@@ -240,6 +260,7 @@ public class Kernel {
             }else if(inst_real.equals(TEXT_REQUEST)){
                 String name = inst_parts[1];
                 int unit = Integer.parseInt(inst_parts[2]);
+                int MAX_RESOURCE_UNIT = 4;
                 if(unit < 0 || unit > MAX_RESOURCE_UNIT){
                     print_state(TEXT_ERROR);
                     return;
@@ -275,6 +296,11 @@ public class Kernel {
         scheduler();
     }
 
+    /**
+     * Method to destroy a process by recursion
+     * @param name  Name of the process
+     * @return      Signal
+     */
     private int destroyProcess(String name){
         return STATUS_ERROR;
     }
@@ -291,16 +317,20 @@ public class Kernel {
 
 //        Initialize the processes and ready list
         initProcess = new Process(TEXT_INIT, 0, getPID(), null);
-        RL = new ArrayList<LinkedList<Process>>();
-        RL.add(0, new LinkedList<Process>());
-        RL.add(1, new LinkedList<Process>());
-        RL.add(2, new LinkedList<Process>());
+        readyList = new ArrayList<LinkedList<Process>>();
+        readyList.add(0, new LinkedList<Process>());
+        readyList.add(1, new LinkedList<Process>());
+        readyList.add(2, new LinkedList<Process>());
         addtoRL(initProcess);
         currentProcess = initProcess;
 
         init = true;
     }
 
+    /**
+     * Main function for the kernel
+     * @throws Exception
+     */
     private void run() throws Exception {
 //        For output to file
 //        out = new PrintStream(new FileOutputStream(OUT));
@@ -314,11 +344,20 @@ public class Kernel {
         out.close();
     }
 
+    /**
+     * Print the current state
+     * @param state String to be printed
+     */
     private void print_state(String state){
         out.println(state);
 //        out.print(state + " ");
     }
 
+    /**
+     * Main
+     * @param args          Arguments
+     * @throws Exception
+     */
     public static void main(String args[]) throws Exception {
         FileReader fr = new FileReader(IN);
         sc = new Scanner(fr);
