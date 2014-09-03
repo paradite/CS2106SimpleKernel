@@ -1,6 +1,4 @@
-package zhuliang.nus.cs2105;
-
-import sun.awt.image.ImageWatched;
+package zhuliang.nus.cs2106;
 
 import java.util.LinkedList;
 
@@ -19,5 +17,6 @@ public class Resource {
         this.max_unit = unit;
         this.status = unit;
         this.RID = RID;
+        this.waiting_list = new LinkedList<Process>();
     }
 }

@@ -1,5 +1,6 @@
-package zhuliang.nus.cs2105;
+package zhuliang.nus.cs2106;
 
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -10,8 +11,8 @@ public class Process implements Comparable<Process>{
     public String name;
     public int priority;
     public int PID;
-    public List<Resource> resources_using;
-    public List<Resource> resources_blocking;
+    public LinkedList<Resource> resources_using;
+    public LinkedList<Resource> resources_blocking;
     public final int STATUS_ERROR = -1;
     public final int STATUS_READY = 0;
     public final int STATUS_RUNNING = 1;
@@ -30,6 +31,8 @@ public class Process implements Comparable<Process>{
         this.priority = priority;
         this.PID = PID;
         this.parent = parent;
+        this.resources_using = new LinkedList<Resource>();
+        this.resources_blocking = new LinkedList<Resource>();
     }
 
     @Override
