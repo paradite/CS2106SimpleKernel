@@ -28,7 +28,8 @@ public class Utils {
     static final String TEXT_RELEASE = "rel";
     static final String TEXT_TIMEOUT = "to";
 
-    static final String FILENAME = "testGR-sample";
-    static final String OUT      = FILENAME + ".out";
+    static final String FILENAME = "input";
+    static final String MATRIC = "A0093910H";
+    static final String OUT      = MATRIC + ".txt";
     static String IN             = FILENAME + ".txt";
 }

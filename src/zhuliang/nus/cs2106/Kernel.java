@@ -1,5 +1,6 @@
 package zhuliang.nus.cs2106;
 
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.PrintStream;
 import java.util.*;
@@ -464,8 +465,10 @@ public class Kernel {
      * @throws Exception
      */
     private void run() throws Exception {
+        if(!DEBUG){
+            out = new PrintStream(new FileOutputStream(Utils.OUT));
+        }
 //        For output to file
-//        out = new PrintStream(new FileOutputStream(OUT));
         String inst;
         while(sc.hasNextLine()) {
             inst = sc.nextLine();
@@ -485,6 +488,8 @@ public class Kernel {
     private void print_state(String state){
         if(DEBUG){
             out.println(state);
+        }else if(state.equals(Utils.TEXT_ERROR)){
+            out.print(state);
         }else{
             out.print(state + " ");
         }
