@@ -83,4 +83,23 @@ public class KernelProcess implements Comparable<KernelProcess>{
     public void removeFromParent(){
         this.parent.childrenList.remove(this);
     }
+
+    /**
+     * Check if process p is the children of this process
+     * @param p another process to be checked
+     * @return  true if it is a children of this process
+     */
+    public boolean checkIfIsChild(KernelProcess p) {
+//        Return false if process does not exist
+        if(p == null){
+            return false;
+        }
+        KernelProcess children;
+        if(this.childrenList != null && !this.childrenList.isEmpty()){
+            children = this.childrenList.removeLast();
+//            Return true if p is this process or p is child of this process or p is recursively child of this process
+            return children.equals(p) || checkIfIsChild(p) || checkIfIsChild(children);
+        }
+        return false;
+    }
 }

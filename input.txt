@@ -1,0 +1,87 @@
+init
+cr w 1
+cr x 1
+cr y 1
+cr z 1
+to
+to
+de z
+
+init
+cr w 1
+cr x 1
+to
+cr y 1
+to
+de w
+cr x 1
+cr x 1
+
+init
+cr x 2
+cr y 1
+to
+cr z 2
+to
+req R1 1
+to
+req R1 1
+de z
+rel R1 1
+de x
+
+init
+cr x 1
+cr p 1
+cr q 1
+cr r 1
+to
+req R2 2
+to
+req R3 2
+to
+req R4 1
+to
+to
+req R3 2
+req R4 4
+req R2 1
+to
+de q
+to
+to
+req R1 2
+
+init
+cr x 2
+cr x 1
+
+init
+cr x 1
+req R4 2
+cr y 2
+rel R1 1
+
+init
+cr x 1
+req R4 0
+
+init
+cr d 2
+req R3 2
+rel R3 0
+
+init
+cr z 0
+
+init
+de init
+
+init
+cr x 1
+cr y 2
+de x
+
+init
+cr でび 1
+cr 转换 2

@@ -14,19 +14,29 @@ public class Kernel {
     static final char radix = ' ';
     static private boolean init = false;
 
-    //    KernelProcess related
+//    KernelProcess related
 //    PID number
     private int currentPID = 0;
-    //    HashMap Index for all the processes
+//    HashMap Index for all the processes
     private HashMap<String, KernelProcess> currentProcesses;
+//    Init Process
     KernelProcess initKernelProcess;
+//    The currently running process
     public KernelProcess currentKernelProcess;
+//    The ready list
     public ArrayList<LinkedList<KernelProcess>> readyList;
+//    Temporary process for swapping, etc.
     public KernelProcess tempKernelProcess;
+//    Max and Min for priority
+    public final int MAX_PRIORITY = 2;
+    public final int MIN_PRIORITY = 0;
 
-    //    Resources related
+//    Resources related
+//    Index for resources
     private KernelResource[] kernelResources;
+//    Limit on resource unit
     private final int MAX_RESOURCE_UNIT = 4;
+    private final int MIN_RESOURCE_UNIT = 1;
 
     /**
      * Request resource with current process and call the method to do the allocation
@@ -37,6 +47,9 @@ public class Kernel {
     public int requestResource(String resTag, int unit){
         KernelResource res = getResourceFromTag(resTag);
         KernelProcess processRequesting = currentKernelProcess;
+        if(unit > MAX_RESOURCE_UNIT || unit < MIN_RESOURCE_UNIT){
+            return Utils.STATUS_ERROR;
+        }
 //        Try to allocate resource to the process
         return allocateResource(unit, res, processRequesting);
     }
@@ -109,7 +122,7 @@ public class Kernel {
         }
 
 //        Check if unit released is valid
-        if(unit > res.max_unit || unit > respair.getUnit()){
+        if(unit > MAX_RESOURCE_UNIT || unit < MIN_RESOURCE_UNIT || unit > res.max_unit || unit > respair.getUnit()){
 //            Releasing for more than max or what the process is using, return error
             return Utils.STATUS_ERROR;
         }else if(unit <= respair.getUnit()){
@@ -304,12 +317,7 @@ public class Kernel {
                 String name = inst_parts[1];
                 String stringPriority = inst_parts[2];
                 int priority = Integer.parseInt(stringPriority);
-                if(priority < 0 || priority > 2){
-//                    Priority invalid, terminate execution
-                    result = Utils.STATUS_ERROR;
-                }else {
-                    createProcess(name, priority);
-                }
+                result = createProcess(name, priority);
             }else if(inst_real.equals(Utils.TEXT_DESTROY)){
 //                Get the name of the process to be destroyed
                 String name = inst_parts[1];
@@ -317,11 +325,7 @@ public class Kernel {
             }else if(inst_real.equals(Utils.TEXT_REQUEST)){
                 String name = inst_parts[1];
                 int unit = Integer.parseInt(inst_parts[2]);
-                if(unit < 0 || unit > MAX_RESOURCE_UNIT){
-                    result = Utils.STATUS_ERROR;
-                }else{
-                    result = requestResource(name, unit);
-                }
+                result = requestResource(name, unit);
             }else if(inst_real.equals(Utils.TEXT_RELEASE)){
                 String name = inst_parts[1];
                 int unit = Integer.parseInt(inst_parts[2]);
@@ -330,7 +334,7 @@ public class Kernel {
                 timeOut();
             }else{
 //                Invalid instruction, return error
-                print_state(Utils.TEXT_ERROR);
+                result = Utils.STATUS_ERROR;
             }
             //        Post-execution
             if(result == Utils.STATUS_ERROR){
@@ -339,7 +343,6 @@ public class Kernel {
                 scheduler();
             }
         }
-
     }
 
     /**
@@ -347,18 +350,31 @@ public class Kernel {
      * @param name      name of the process
      * @param priority  priority of the process
      */
-    private KernelProcess createProcess(String name, int priority) {
+    private int createProcess(String name, int priority) {
         int current_PID = getPID();
+//        Prevent creation of duplicate processes and processes of wrong priorities
+        if(currentProcesses.get(name) != null || priority > MAX_PRIORITY || priority < MIN_PRIORITY){
+            return Utils.STATUS_ERROR;
+        }
+
+//        Prevent creation of process with priority 0 except for init process
+        if(priority == 0 && !name.equals(Utils.TEXT_INIT)){
+            return Utils.STATUS_ERROR;
+        }
+
+
         KernelProcess newKernelProcess = new KernelProcess(name, priority, current_PID, currentKernelProcess);
 //        Update the childrenList field of the parent
         if(!name.equals(Utils.TEXT_INIT)){
             currentKernelProcess.childrenList.add(newKernelProcess);
+        }else {
+            initKernelProcess = newKernelProcess;
         }
 //        Add the process to the index
         currentProcesses.put(name, newKernelProcess);
 //        Add the process to ready list
         addtoRL(newKernelProcess);
-        return newKernelProcess;
+        return Utils.SIGNAL_SUCCESS;
     }
 
     /**
@@ -369,11 +385,19 @@ public class Kernel {
     private int destroyProcess(String name){
 //        Query for the process in the index
         KernelProcess p = getKernelProcess(name);
-        if(p == null){
+//        Error if process does not exist or process is init process
+        if(p == null || p.equals(initKernelProcess)){
             return Utils.STATUS_ERROR;
         }
-        killProcessTree(p);
-        return Utils.SIGNAL_SUCCESS;
+//        Deletion is not valid if the process trying to destroy is not the running process or its children
+        boolean valid_delete = false;
+        valid_delete = p.equals(currentKernelProcess) || currentKernelProcess.checkIfIsChild(p);
+        if(valid_delete){
+            killProcessTree(p);
+            return Utils.SIGNAL_SUCCESS;
+        }else {
+            return Utils.STATUS_ERROR;
+        }
     }
 
     /**
@@ -387,8 +411,9 @@ public class Kernel {
             children = p.childrenList.removeLast();
             killProcessTree(children);
         }
-//        Remove from RL
+//        Remove from RL and index
         removefromRL(p);
+        currentProcesses.remove(p.name);
 
 //        Free resources
         freeResources(p);
@@ -455,7 +480,7 @@ public class Kernel {
         readyList.add(0, new LinkedList<KernelProcess>());
         readyList.add(1, new LinkedList<KernelProcess>());
         readyList.add(2, new LinkedList<KernelProcess>());
-        initKernelProcess = createProcess(Utils.TEXT_INIT, 0);
+        createProcess(Utils.TEXT_INIT, 0);
         currentKernelProcess = initKernelProcess;
         init = true;
         print_state(Utils.TEXT_INIT);

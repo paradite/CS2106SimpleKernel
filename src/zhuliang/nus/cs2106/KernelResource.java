@@ -22,6 +22,10 @@ public class KernelResource {
         this.using_list = new LinkedList<KernelProcess>();
     }
 
+    /**
+     * Remove the blocked process and return it if it exists
+     * @return  {@link zhuliang.nus.cs2106.KernelProcess} or null
+     */
     public KernelProcess getAndRemoveBlocked(){
         if(this.blocked_list == null || this.blocked_list.isEmpty()){
             return null;
